@@ -1,0 +1,9 @@
+{
+  "name": "Model Training Center",
+  "version": "1.0.0",
+  "description": "Train and fine-tune AI models using Jupyter notebooks",
+  "enabled": true,
+  "author": "AppStore Team",
+  "icon": "🎓",
+  "dependencies": ["jupyterlab", "notebook"]
+}

@@ -7,7 +7,8 @@ import sys
 import os
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QListWidget, QStackedWidget,
-                             QLabel, QStatusBar, QMessageBox, QSplitter, QFrame)
+                             QLabel, QStatusBar, QMessageBox, QSplitter, QFrame, 
+                             QScrollArea)
 from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QIcon, QFont
 
@@ -18,6 +19,7 @@ if project_root not in sys.path:
 
 from main_app.utils.app_loader import AppLoader
 from main_app.ui.theme import ModernTheme
+from main_app.ui.app_card import AppCard
 
 
 class MainWindow(QMainWindow):
@@ -27,6 +29,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.app_loader = None
         self.loaded_apps = {}
+        self.app_cards = []  # Store card widgets
+        self.selected_card = None  # Track selected card
         self.init_ui()
         self.load_apps()
     
@@ -117,11 +121,40 @@ class MainWindow(QMainWindow):
         """)
         layout.addWidget(apps_label)
         
-        # App list with modern styling
-        self.app_list = QListWidget()
-        self.app_list.currentItemChanged.connect(self.on_app_selected)
-        self.app_list.setSpacing(8)
-        layout.addWidget(self.app_list)
+        # Scroll area for app cards
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                background-color: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background-color: #2D2D2D;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #555555;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #666666;
+            }
+        """)
+        
+        # Container widget for cards
+        self.cards_container = QWidget()
+        self.cards_layout = QVBoxLayout(self.cards_container)
+        self.cards_layout.setContentsMargins(0, 0, 0, 0)
+        self.cards_layout.setSpacing(10)
+        self.cards_layout.addStretch()  # Push cards to top
+        
+        scroll_area.setWidget(self.cards_container)
+        layout.addWidget(scroll_area)
         
         # Button container
         button_container = QWidget()
@@ -297,12 +330,18 @@ class MainWindow(QMainWindow):
             self.app_loader = AppLoader(apps_dir)
             self.loaded_apps = self.app_loader.load_all_apps()
             
-            # Add apps to the list
+            # Add apps as cards
             for app_name, app_instance in self.loaded_apps.items():
                 if app_instance.is_enabled():
                     info = app_instance.get_info()
-                    display_name = f"{info['name']} (v{info['version']})"
-                    self.app_list.addItem(display_name)
+                    
+                    # Create card widget
+                    card = AppCard(info, app_instance, self)
+                    card.clicked.connect(self.on_card_clicked)
+                    self.app_cards.append(card)
+                    
+                    # Insert before the stretch
+                    self.cards_layout.insertWidget(self.cards_layout.count() - 1, card)
                     
                     # Add app widget to stacked widget
                     try:
@@ -321,8 +360,12 @@ class MainWindow(QMainWindow):
     
     def refresh_apps(self):
         """Refresh the application list."""
-        # Clear current apps
-        self.app_list.clear()
+        # Clear current card widgets
+        for card in self.app_cards:
+            self.cards_layout.removeWidget(card)
+            card.deleteLater()
+        self.app_cards.clear()
+        self.selected_card = None
         
         # Clear stacked widget (except welcome screen)
         while self.stacked_widget.count() > 1:
@@ -337,35 +380,35 @@ class MainWindow(QMainWindow):
         # Reload apps
         self.load_apps()
         self.stacked_widget.setCurrentIndex(0)
+        self.app_info_label.setText("Select an application from the list")
         self.status_bar.showMessage("Applications refreshed")
     
-    def on_app_selected(self, current, previous):
-        """Handle app selection from the list.
+    def on_card_clicked(self, app_info):
+        """Handle card click event.
         
         Args:
-            current: Currently selected item
-            previous: Previously selected item
+            app_info: Dictionary with app information
         """
-        if current is None:
-            self.stacked_widget.setCurrentIndex(0)
-            self.app_info_label.setText("Select an application from the list")
-            return
+        # Deselect previous card
+        if self.selected_card:
+            self.selected_card.set_selected(False)
         
-        # Get the app name from the list item text
-        item_text = current.text()
+        # Find and select the clicked card
+        for card in self.app_cards:
+            if card.app_info == app_info:
+                card.set_selected(True)
+                self.selected_card = card
+                break
         
-        # Find the corresponding app
+        # Update info label
+        self.app_info_label.setText(
+            f"<b>{app_info['name']}</b> - {app_info['description']}"
+        )
+        
+        # Find the corresponding app instance and switch to its widget
         for app_name, app_instance in self.loaded_apps.items():
             info = app_instance.get_info()
-            display_name = f"{info['name']} (v{info['version']})"
-            
-            if display_name == item_text:
-                # Update info label
-                self.app_info_label.setText(
-                    f"<b>{info['name']}</b> - {info['description']}"
-                )
-                
-                # Switch to app widget
+            if info['name'] == app_info['name']:
                 app_widget = app_instance.get_widget()
                 index = self.stacked_widget.indexOf(app_widget)
                 if index != -1:

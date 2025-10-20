@@ -228,11 +228,19 @@ The new app will be automatically discovered and loaded!
 
 Contains the current application version (e.g., `1.0.0`)
 
+## � Documentation
+
+Comprehensive documentation is available in the `docs/` folder:
+
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get up and running in 5 minutes
+- **[Installation Guide](docs/INSTALL.md)** - Detailed setup instructions
+- **[CUDA Setup Guide](docs/CUDA_SETUP.md)** - GPU acceleration configuration
+- **[YOLO Versions](docs/YOLO_VERSIONS.md)** - Model version and size selection
+- **[Git Guide](docs/GIT_GUIDE.md)** - Version control best practices
+
 ## 🖥️ Hardware Acceleration - CUDA 13.0 ✓
 
-### Current CUDA Support (Fully Configured ✓)
-
-The application is now configured with **CUDA 13.0** support!
+The application is configured with **CUDA 13.0** support for GPU acceleration!
 
 **Installed GPU Packages:**
 - ✅ **TensorRT 10.13.3.9** - Model inference optimization
@@ -240,32 +248,9 @@ The application is now configured with **CUDA 13.0** support!
 - ✅ **OpenCV 4.12.0** - Computer vision with contrib modules
 - ✅ **CUDA Runtime** - NVIDIA CUDA 13.0 libraries
 
-### Verify CUDA Installation
-
-```bash
-python verify_cuda.py
-```
-
-### Using GPU Acceleration
-
-**TensorRT (Model Inference):**
-```python
-import tensorrt as trt
-# TensorRT is now available for model optimization
-```
-
-**CuPy (GPU Arrays):**
-```python
-import cupy as cp
-gpu_array = cp.array([1, 2, 3])
-result = cp.sum(gpu_array ** 2)  # Runs on GPU!
-```
-
 **Performance:** 10-50x faster for large operations!
 
-### Documentation
-
-See `CUDA_SETUP.md` and `CUDA_INSTALL_SUMMARY.md` for complete details.
+See **[CUDA Setup Guide](docs/CUDA_SETUP.md)** for complete details.
 
 ## 🐛 Debugging
 

@@ -6,6 +6,10 @@
 ```bash
 python download_models.py
 ```
+**Version Selection:**
+- **YOLO v11** (Default) - Latest, +10-15% faster, better accuracy ⭐ RECOMMENDED
+- **YOLO v8** - Stable, well-tested
+
 **Or** use the Training app → Click "📦 Download Models"
 
 **Recommended:** Select option 6 (Small models) for quick testing
@@ -30,37 +34,56 @@ Follow the step-by-step instructions in each notebook!
 
 ### Available Models
 
-**Detection (YOLOv8):**
-- `yolov8n.pt` - Nano (6.3 MB) - Fastest
-- `yolov8s.pt` - Small (21.5 MB) - **Recommended**
-- `yolov8m.pt` - Medium (49.7 MB)
-- `yolov8l.pt` - Large (83.7 MB)
-- `yolov8x.pt` - XLarge (130.5 MB) - Most accurate
+**Detection (YOLO v11 - Default) ⭐:**
+- `yolo11n.pt` - Nano (6.3 MB) - Fastest - 39.5% mAP
+- `yolo11s.pt` - Small (21.5 MB) - **Recommended** - 47.0% mAP
+- `yolo11m.pt` - Medium (49.7 MB) - 51.5% mAP
+- `yolo11l.pt` - Large (83.7 MB) - 53.4% mAP
+- `yolo11x.pt` - XLarge (130.5 MB) - Most accurate - 54.7% mAP
 
-**Classification (YOLOv8):**
-- `yolov8n-cls.pt` - Nano (5.8 MB)
-- `yolov8s-cls.pt` - Small (11.4 MB) - **Recommended**
-- `yolov8m-cls.pt` - Medium (26.1 MB)
+**Detection (YOLO v8 - Legacy):**
+- `yolov8n.pt` - Nano - 37.3% mAP
+- `yolov8s.pt` - Small - 44.9% mAP
+- `yolov8m.pt` through `yolov8x.pt`
+
+**Classification (YOLO v11 - Default) ⭐:**
+- `yolo11n-cls.pt` - Nano - 69.0% Top-1
+- `yolo11s-cls.pt` - Small - **Recommended** - 73.8% Top-1
+- `yolo11m-cls.pt` - Medium - 77.3% Top-1
+
+**Classification (YOLO v8 - Legacy):**
+- `yolov8n-cls.pt` - 66.6% Top-1
+- `yolov8s-cls.pt` - 72.3% Top-1
+- `yolov8m-cls.pt` - 76.4% Top-1
 
 **Tracking:**
-- YOLOv8 models (same as detection)
+- YOLO v11 or v8 models (same as detection)
 - `osnet_x0_25_msmt17.pt` - StrongSORT Re-ID (2.3 MB)
+
+> 💡 **Tip:** YOLO v11 is 10-15% faster with better accuracy. See `YOLO_VERSIONS.md` for detailed comparison.
 
 ### Quick Download Commands
 
 **Download all small models (fastest):**
 ```bash
 python download_models.py
-# Select: 6
+# 1. Select version: 1 (YOLO v11 - RECOMMENDED)
+# 2. Select: 6 (Small models only)
 ```
 
 **Download specific task:**
 ```bash
 python download_models.py
-# Select: 2 (Detection only)
-# Select: 3 (Classification only)
-# Select: 4 (Tracking only)
+# 1. Select version: 1 (YOLO v11) or 2 (YOLO v8)
+# 2. Select: 2 (Detection only)
+# 3. Or select: 3 (Classification only)
+# 4. Or select: 4 (Tracking only)
+# 8. Change version anytime
 ```
+
+**Version Comparison:**
+- **v11:** +10-15% faster, +1-2% more accurate, better for small objects ⭐
+- **v8:** Stable, well-tested, maximum compatibility
 
 ---
 

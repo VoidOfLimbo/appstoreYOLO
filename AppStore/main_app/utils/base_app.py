@@ -26,7 +26,7 @@ class BaseApp(ABC):
         """
         self.app_path = app_path
         self.config = self._load_config()
-        self.name = self.config.get('name', 'Unknown App')
+        self.name = self.config.get('name', 'Modal Builder App')
         self.version = self.config.get('version', '1.0.0')
         self.description = self.config.get('description', '')
         self.enabled = self.config.get('enabled', True)

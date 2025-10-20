@@ -16,35 +16,58 @@ import hashlib
 class ModelDownloader:
     """Downloads and manages AI models for the AppStore."""
     
-    # YOLO model URLs (Ultralytics)
-    YOLO_MODELS = {
-        'detection': {
-            'yolov8n': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt',
-            'yolov8s': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8s.pt',
-            'yolov8m': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8m.pt',
-            'yolov8l': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8l.pt',
-            'yolov8x': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8x.pt',
+    # YOLO model URLs by version (Ultralytics)
+    YOLO_VERSIONS = {
+        'v8': {
+            'detection': {
+                'yolov8n': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt',
+                'yolov8s': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8s.pt',
+                'yolov8m': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8m.pt',
+                'yolov8l': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8l.pt',
+                'yolov8x': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8x.pt',
+            },
+            'classification': {
+                'yolov8n-cls': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n-cls.pt',
+                'yolov8s-cls': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8s-cls.pt',
+                'yolov8m-cls': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8m-cls.pt',
+            },
+            'tracking': {
+                'yolov8n': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt',
+                'yolov8s': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8s.pt',
+            }
         },
-        'classification': {
-            'yolov8n-cls': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n-cls.pt',
-            'yolov8s-cls': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8s-cls.pt',
-            'yolov8m-cls': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8m-cls.pt',
-        },
-        'tracking': {
-            'yolov8n': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt',
-            'yolov8s': 'https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8s.pt',
+        'v11': {
+            'detection': {
+                'yolo11n': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt',
+                'yolo11s': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11s.pt',
+                'yolo11m': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11m.pt',
+                'yolo11l': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11l.pt',
+                'yolo11x': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11x.pt',
+            },
+            'classification': {
+                'yolo11n-cls': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n-cls.pt',
+                'yolo11s-cls': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11s-cls.pt',
+                'yolo11m-cls': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11m-cls.pt',
+            },
+            'tracking': {
+                'yolo11n': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt',
+                'yolo11s': 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11s.pt',
+            }
         }
     }
     
-    def __init__(self, base_dir=None):
+    def __init__(self, base_dir=None, yolo_version='v11'):
         """Initialize the model downloader.
         
         Args:
             base_dir: Base directory for models (defaults to ./models)
+            yolo_version: YOLO version to download ('v8' or 'v11', default: 'v11')
         """
         if base_dir is None:
             base_dir = Path(__file__).parent / 'models'
         self.base_dir = Path(base_dir)
+        self.yolo_version = yolo_version
+        self.yolo_models = self.YOLO_VERSIONS.get(yolo_version, self.YOLO_VERSIONS['v11'])
         self.setup_directories()
     
     def setup_directories(self):
@@ -116,13 +139,15 @@ class ModelDownloader:
         
         tasks = ['detection', 'classification', 'tracking'] if task == 'all' else [task]
         
+        print(f"\n🎯 Using YOLO {self.yolo_version.upper()} models")
+        
         for task_name in tasks:
-            if task_name not in self.YOLO_MODELS:
+            if task_name not in self.yolo_models:
                 continue
                 
             print(f"\n📦 Downloading {task_name} models...")
             
-            for model_name, url in self.YOLO_MODELS[task_name].items():
+            for model_name, url in self.yolo_models[task_name].items():
                 # Filter by size if specified
                 if size != 'all':
                     size_code = size_map.get(size, 's')
@@ -187,7 +212,48 @@ def main():
     print("🚀 AppStore Model Downloader")
     print("=" * 70)
     
-    downloader = ModelDownloader()
+    # Version selection
+    print("\n📌 Select YOLO Version:")
+    print("1. YOLO v11 (Latest, Best Performance) - RECOMMENDED ⭐")
+    print("2. YOLO v8 (Stable, Well-tested)")
+    
+    version_choice = input("\nSelect version (1-2, default=1): ").strip() or '1'
+    
+    if version_choice == '2':
+        yolo_version = 'v8'
+        print("✓ Selected YOLO v8")
+    else:
+        yolo_version = 'v11'
+        print("✓ Selected YOLO v11 (Default)")
+    
+    # Model size selection
+    print("\n📏 Select Default Model Size:")
+    print("1. Nano (n) - Smallest, Fastest (~3MB)")
+    print("2. Small (s) - Balanced, Good for testing (~11MB)")
+    print("3. Medium (m) - RECOMMENDED ⭐ (~25MB)")
+    print("4. Large (l) - High accuracy (~43MB)")
+    print("5. XLarge (x) - Best accuracy (~68MB)")
+    print("6. All sizes - Download everything")
+    
+    size_choice = input("\nSelect size (1-6, default=3): ").strip() or '3'
+    
+    size_map = {
+        '1': ('nano', 'n'),
+        '2': ('small', 's'),
+        '3': ('medium', 'm'),
+        '4': ('large', 'l'),
+        '5': ('xlarge', 'x'),
+        '6': ('all', 'all')
+    }
+    
+    size_name, size_code = size_map.get(size_choice, ('medium', 'm'))
+    print(f"✓ Selected {size_name.upper()} models (Default: Medium)")
+    
+    downloader = ModelDownloader(yolo_version=yolo_version)
+    
+    print("\n" + "=" * 70)
+    print(f"📦 Downloading YOLO {yolo_version.upper()} - {size_name.upper()} Models")
+    print("=" * 70)
     
     print("\nAvailable options:")
     print("1. Download all YOLO models (detection, classification, tracking)")
@@ -195,8 +261,8 @@ def main():
     print("3. Download classification models only")
     print("4. Download tracking models only")
     print("5. Download StrongSORT model")
-    print("6. Download small models only (recommended for testing)")
-    print("7. List downloaded models")
+    print("6. List downloaded models")
+    print("7. Change settings (version/size)")
     print("0. Exit")
     
     while True:
@@ -206,23 +272,24 @@ def main():
             print("👋 Goodbye!")
             break
         elif choice == '1':
-            downloader.download_yolo_models(task='all', size='all')
+            downloader.download_yolo_models(task='all', size=size_code)
             downloader.download_strongsort_model()
         elif choice == '2':
-            downloader.download_yolo_models(task='detection', size='all')
+            downloader.download_yolo_models(task='detection', size=size_code)
         elif choice == '3':
-            downloader.download_yolo_models(task='classification', size='all')
+            downloader.download_yolo_models(task='classification', size=size_code)
         elif choice == '4':
-            downloader.download_yolo_models(task='tracking', size='all')
+            downloader.download_yolo_models(task='tracking', size=size_code)
             downloader.download_strongsort_model()
         elif choice == '5':
             downloader.download_strongsort_model()
         elif choice == '6':
-            print("\nDownloading small models (nano and small sizes)...")
-            downloader.download_yolo_models(task='all', size='small')
-            downloader.download_strongsort_model()
-        elif choice == '7':
             downloader.list_models()
+        elif choice == '7':
+            # Change settings and restart
+            print("\n" + "=" * 70)
+            main()
+            return
         else:
             print("❌ Invalid option. Please try again.")
     

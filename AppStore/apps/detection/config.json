@@ -4,5 +4,6 @@
   "description": "Real-time object detection using OpenCV",
   "enabled": true,
   "author": "AppStore Team",
+  "icon": "🎯",
   "dependencies": ["opencv-python", "numpy"]
 }
