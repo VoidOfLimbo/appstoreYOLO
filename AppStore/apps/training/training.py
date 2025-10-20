@@ -206,11 +206,16 @@ class TrainingApp(BaseApp):
         self.stop_btn.setStyleSheet("""
             QPushButton {
                 background-color: #E74C3C;
+                color: #FFFFFF;
                 font-size: 14px;
                 font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #C0392B;
+            }
+            QPushButton:disabled {
+                background-color: #555555;
+                color: #999999;
             }
         """)
         layout.addWidget(self.stop_btn)
@@ -459,10 +464,19 @@ class TrainingApp(BaseApp):
             )
             return
         
+        # Get Python executable from virtual environment
+        venv_python = Path(__file__).parent.parent.parent.parent / '.venv' / 'Scripts' / 'python.exe'
+        if not venv_python.exists():
+            venv_python = 'python'  # Fallback to system python
+        else:
+            venv_python = str(venv_python)
+        
         # Open in terminal
         import platform
         if platform.system() == 'Windows':
-            subprocess.Popen(['powershell', '-Command', f'python "{download_script}"'], 
+            # Use -NoExit to keep the terminal open after script finishes
+            cmd = f'cd "{download_script.parent}"; {venv_python} "{download_script}"; pause'
+            subprocess.Popen(['powershell', '-NoExit', '-Command', cmd], 
                            creationflags=subprocess.CREATE_NEW_CONSOLE)
         else:
             subprocess.Popen(['python', str(download_script)])

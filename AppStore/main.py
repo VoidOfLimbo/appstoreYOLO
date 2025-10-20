@@ -83,8 +83,8 @@ class MainWindow(QMainWindow):
         panel = QWidget()
         panel.setStyleSheet(ModernTheme.get_panel_style())
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(15, 20, 15, 20)
-        layout.setSpacing(15)
+        layout.setContentsMargins(8, 12, 8, 12)
+        layout.setSpacing(8)
         
         # Logo/Title section
         title_container = QWidget()
@@ -99,7 +99,6 @@ class MainWindow(QMainWindow):
         subtitle = QLabel("AI Application Platform")
         subtitle.setProperty("class", "subtitle")
         subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet(f"color: {ModernTheme.TEXT_SECONDARY}; font-size: 10pt;")
         title_layout.addWidget(subtitle)
         
         layout.addWidget(title_container)
@@ -113,12 +112,6 @@ class MainWindow(QMainWindow):
         # Apps section label
         apps_label = QLabel("📱 INSTALLED APPS")
         apps_label.setProperty("class", "header")
-        apps_label.setStyleSheet(f"""
-            color: {ModernTheme.TEXT_SECONDARY};
-            font-size: 9pt;
-            font-weight: bold;
-            padding: 10px 5px 5px 5px;
-        """)
         layout.addWidget(apps_label)
         
         # Scroll area for app cards
@@ -150,7 +143,7 @@ class MainWindow(QMainWindow):
         self.cards_container = QWidget()
         self.cards_layout = QVBoxLayout(self.cards_container)
         self.cards_layout.setContentsMargins(0, 0, 0, 0)
-        self.cards_layout.setSpacing(10)
+        self.cards_layout.setSpacing(4)
         self.cards_layout.addStretch()  # Push cards to top
         
         scroll_area.setWidget(self.cards_container)
@@ -160,7 +153,7 @@ class MainWindow(QMainWindow):
         button_container = QWidget()
         button_layout = QVBoxLayout(button_container)
         button_layout.setContentsMargins(0, 0, 0, 0)
-        button_layout.setSpacing(10)
+        button_layout.setSpacing(4)
         
         # Refresh button with icon
         refresh_btn = QPushButton("🔄 Refresh Apps")
@@ -188,16 +181,16 @@ class MainWindow(QMainWindow):
         """
         panel = QWidget()
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
         
         # Top bar with app info
         top_bar = QWidget()
         top_bar.setStyleSheet(ModernTheme.get_card_style())
-        top_bar.setMinimumHeight(70)
-        top_bar.setMaximumHeight(70)
+        top_bar.setMinimumHeight(56)
+        top_bar.setMaximumHeight(56)
         top_bar_layout = QHBoxLayout(top_bar)
-        top_bar_layout.setContentsMargins(20, 15, 20, 15)
+        top_bar_layout.setContentsMargins(12, 8, 12, 8)
         
         self.app_info_label = QLabel("Select an application from the list")
         self.app_info_label.setStyleSheet(f"""
@@ -229,23 +222,23 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         widget.setStyleSheet(ModernTheme.get_card_style())
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setContentsMargins(24, 24, 24, 24)
         layout.setAlignment(Qt.AlignCenter)
-        layout.setSpacing(25)
+        layout.setSpacing(16)
         
         # Large icon/emoji
         icon_label = QLabel("🚀")
-        icon_label.setStyleSheet("font-size: 120px;")
+        icon_label.setStyleSheet("font-size: 96px; background-color: transparent;")
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
         
         # Title with modern font
         title = QLabel("Welcome to AppStore")
-        title.setProperty("class", "title")
         title.setStyleSheet(f"""
-            font-size: 36pt;
+            font-size: 32pt;
             font-weight: bold;
             color: {ModernTheme.ACCENT};
+            background-color: transparent;
         """)
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
@@ -253,8 +246,9 @@ class MainWindow(QMainWindow):
         # Subtitle
         subtitle = QLabel("Your Modular AI Application Platform")
         subtitle.setStyleSheet(f"""
-            font-size: 16pt;
+            font-size: 14pt;
             color: {ModernTheme.TEXT_SECONDARY};
+            background-color: transparent;
         """)
         subtitle.setAlignment(Qt.AlignCenter)
         layout.addWidget(subtitle)
@@ -263,10 +257,10 @@ class MainWindow(QMainWindow):
         features_card = QWidget()
         features_card.setStyleSheet(f"""
             background-color: {ModernTheme.BG_LIGHT};
-            border-radius: 12px;
-            padding: 30px;
+            border-radius: 4px;
+            padding: 16px;
         """)
-        features_card.setMaximumWidth(600)
+        features_card.setMaximumWidth(500)
         features_layout = QVBoxLayout(features_card)
         
         features = [
@@ -279,23 +273,24 @@ class MainWindow(QMainWindow):
         for emoji, title_text, desc in features:
             feature_row = QWidget()
             feature_layout = QHBoxLayout(feature_row)
-            feature_layout.setContentsMargins(10, 12, 10, 12)
-            feature_layout.setSpacing(15)
+            feature_layout.setContentsMargins(4, 8, 4, 8)
+            feature_layout.setSpacing(12)
             
             emoji_label = QLabel(emoji)
-            emoji_label.setStyleSheet("font-size: 28pt;")
-            emoji_label.setFixedWidth(60)
+            emoji_label.setStyleSheet("font-size: 24pt; background-color: transparent;")
+            emoji_label.setFixedWidth(48)
             emoji_label.setAlignment(Qt.AlignCenter)
             feature_layout.addWidget(emoji_label)
             
             text_layout = QVBoxLayout()
-            text_layout.setSpacing(5)
+            text_layout.setSpacing(4)
             
             title_label = QLabel(title_text)
             title_label.setStyleSheet(f"""
-                font-size: 14pt;
-                font-weight: bold;
+                font-size: 12pt;
+                font-weight: 600;
                 color: {ModernTheme.TEXT_PRIMARY};
+                background-color: transparent;
             """)
             text_layout.addWidget(title_label)
             
@@ -303,7 +298,9 @@ class MainWindow(QMainWindow):
             desc_label.setStyleSheet(f"""
                 font-size: 10pt;
                 color: {ModernTheme.TEXT_SECONDARY};
+                background-color: transparent;
             """)
+            desc_label.setWordWrap(True)
             text_layout.addWidget(desc_label)
             
             feature_layout.addLayout(text_layout)
@@ -314,9 +311,10 @@ class MainWindow(QMainWindow):
         # Get started hint
         hint = QLabel("👈 Select an app from the sidebar to begin")
         hint.setStyleSheet(f"""
-            font-size: 12pt;
+            font-size: 11pt;
             color: {ModernTheme.TEXT_SECONDARY};
-            padding: 20px;
+            padding: 12px;
+            background-color: transparent;
         """)
         hint.setAlignment(Qt.AlignCenter)
         layout.addWidget(hint)
@@ -421,39 +419,39 @@ class MainWindow(QMainWindow):
         """Show about dialog."""
         about_text = f"""
         <div style='text-align: center;'>
-            <h1 style='color: {ModernTheme.ACCENT}; margin-bottom: 10px;'>🚀 AppStore</h1>
+            <h1 style='color: {ModernTheme.ACCENT}; margin-bottom: 8px;'>🚀 AppStore</h1>
             <h3 style='color: {ModernTheme.TEXT_SECONDARY}; margin-top: 0;'>
                 Modular AI Application Platform
             </h3>
         </div>
         
-        <p style='font-size: 11pt; margin-top: 20px;'>
+        <p style='font-size: 11pt; margin-top: 16px;'>
             <b style='color: {ModernTheme.ACCENT};'>Version:</b> 1.0.0<br>
             <b style='color: {ModernTheme.ACCENT};'>CUDA Support:</b> 13.0 ✓<br>
             <b style='color: {ModernTheme.ACCENT};'>TensorRT:</b> 10.13.3.9 ✓
         </p>
         
-        <p style='margin-top: 15px;'>
+        <p style='margin-top: 12px; color: {ModernTheme.TEXT_PRIMARY};'>
             A professional-grade modular application framework for AI and 
             computer vision applications with GPU acceleration.
         </p>
         
-        <p style='margin-top: 15px;'><b style='color: {ModernTheme.ACCENT};'>✨ Key Features:</b></p>
-        <ul style='margin-left: 20px;'>
+        <p style='margin-top: 12px; color: {ModernTheme.TEXT_PRIMARY};'><b style='color: {ModernTheme.ACCENT};'>✨ Key Features:</b></p>
+        <ul style='margin-left: 16px; color: {ModernTheme.TEXT_PRIMARY};'>
             <li>🔌 Dynamic application loading system</li>
             <li>⚡ CUDA 13.0 & TensorRT acceleration</li>
-            <li>🎨 Modern, customizable UI framework</li>
+            <li>🎨 Modern dark theme UI</li>
             <li>🔄 Hot-pluggable sub-applications</li>
             <li>📦 Easy deployment & updates</li>
             <li>🛠️ Extensible architecture</li>
         </ul>
         
-        <p style='margin-top: 15px;'><b style='color: {ModernTheme.ACCENT};'>🔧 Technologies:</b></p>
-        <p style='margin-left: 20px;'>
+        <p style='margin-top: 12px; color: {ModernTheme.TEXT_PRIMARY};'><b style='color: {ModernTheme.ACCENT};'>🔧 Technologies:</b></p>
+        <p style='margin-left: 16px; color: {ModernTheme.TEXT_PRIMARY};'>
             PyQt5 • OpenCV • CuPy • TensorRT • NumPy • Python 3.10
         </p>
         
-        <p style='margin-top: 20px; text-align: center; color: {ModernTheme.TEXT_SECONDARY};'>
+        <p style='margin-top: 16px; text-align: center; color: {ModernTheme.TEXT_SECONDARY};'>
             <small>© 2025 AppStore Team. All rights reserved.</small>
         </p>
         """

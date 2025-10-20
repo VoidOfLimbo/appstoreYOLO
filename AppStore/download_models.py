@@ -122,21 +122,13 @@ class ModelDownloader:
             print(f"✗ Error downloading {url}: {e}")
             return False
     
-    def download_yolo_models(self, task='all', size='small'):
+    def download_yolo_models(self, task='all', size='s'):
         """Download YOLO models for specific tasks.
         
         Args:
             task: 'detection', 'classification', 'tracking', or 'all'
-            size: 'nano', 'small', 'medium', 'large', 'xlarge', or 'all'
+            size: Size code 'n', 's', 'm', 'l', 'x', or 'all'
         """
-        size_map = {
-            'nano': 'n',
-            'small': 's',
-            'medium': 'm',
-            'large': 'l',
-            'xlarge': 'x'
-        }
-        
         tasks = ['detection', 'classification', 'tracking'] if task == 'all' else [task]
         
         print(f"\n🎯 Using YOLO {self.yolo_version.upper()} models")
@@ -148,10 +140,11 @@ class ModelDownloader:
             print(f"\n📦 Downloading {task_name} models...")
             
             for model_name, url in self.yolo_models[task_name].items():
-                # Filter by size if specified
+                # Filter by size if specified (size is now a code: 'n', 's', 'm', 'l', 'x')
                 if size != 'all':
-                    size_code = size_map.get(size, 's')
-                    if size_code not in model_name:
+                    # Check if the size code is in the model name
+                    # For yolo11n, yolo11s, yolo11m, etc.
+                    if not model_name.endswith(size) and not model_name.endswith(f'{size}-cls'):
                         continue
                 
                 dest_dir = self.base_dir / task_name / 'yolo'
@@ -256,10 +249,10 @@ def main():
     print("=" * 70)
     
     print("\nAvailable options:")
-    print("1. Download all YOLO models (detection, classification, tracking)")
-    print("2. Download detection models only")
-    print("3. Download classification models only")
-    print("4. Download tracking models only")
+    print(f"1. Download all YOLO models for {size_name.upper()} size (detection, classification, tracking)")
+    print(f"2. Download detection models only ({size_name.upper()})")
+    print(f"3. Download classification models only ({size_name.upper()})")
+    print(f"4. Download tracking models only ({size_name.upper()})")
     print("5. Download StrongSORT model")
     print("6. List downloaded models")
     print("7. Change settings (version/size)")

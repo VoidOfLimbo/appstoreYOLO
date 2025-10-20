@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QFrame, QSizePolicy)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QCursor
+from main_app.ui.theme import ModernTheme
 
 
 class AppCard(QFrame):
@@ -27,52 +28,55 @@ class AppCard(QFrame):
         
     def init_ui(self):
         """Initialize the card UI."""
-        self.setFrameShape(QFrame.StyledPanel)
+        self.setFrameShape(QFrame.NoFrame)
         self.setCursor(QCursor(Qt.PointingHandCursor))
-        self.setMinimumHeight(100)
-        self.setMaximumHeight(100)
+        self.setMinimumHeight(90)
+        # Remove maximum height to allow card to scale with content
         
-        # Apply default style
+        # Apply default style (no background initially)
         self.apply_style(selected=False)
         
         # Main layout
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(15, 12, 15, 12)
-        layout.setSpacing(15)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
         
         # Icon on the left
         icon_label = QLabel(self.app_info.get('icon', '📦'))
-        icon_label.setStyleSheet("font-size: 40px;")
-        icon_label.setFixedSize(60, 60)
+        icon_label.setStyleSheet("font-size: 36px; background-color: transparent;")
+        icon_label.setFixedSize(48, 48)
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
         
         # Text content in the middle
         text_layout = QVBoxLayout()
-        text_layout.setSpacing(4)
+        text_layout.setSpacing(2)
         
         # App name
         name_label = QLabel(self.app_info['name'])
-        name_label.setStyleSheet("""
+        name_label.setStyleSheet(f"""
             font-size: 13pt;
-            font-weight: bold;
-            color: #E8E8E8;
+            font-weight: 600;
+            color: {ModernTheme.TEXT_PRIMARY};
+            background-color: transparent;
         """)
         text_layout.addWidget(name_label)
         
         # App version
         version_label = QLabel(f"v{self.app_info['version']}")
-        version_label.setStyleSheet("""
+        version_label.setStyleSheet(f"""
             font-size: 9pt;
-            color: #888888;
+            color: {ModernTheme.TEXT_MUTED};
+            background-color: transparent;
         """)
         text_layout.addWidget(version_label)
         
         # App description
         desc_label = QLabel(self.app_info['description'])
-        desc_label.setStyleSheet("""
+        desc_label.setStyleSheet(f"""
             font-size: 9pt;
-            color: #AAAAAA;
+            color: {ModernTheme.TEXT_SECONDARY};
+            background-color: transparent;
         """)
         desc_label.setWordWrap(True)
         text_layout.addWidget(desc_label)
@@ -81,12 +85,13 @@ class AppCard(QFrame):
         
         # Arrow indicator on the right
         arrow_label = QLabel("›")
-        arrow_label.setStyleSheet("""
-            font-size: 32pt;
-            color: #555555;
-            font-weight: bold;
+        arrow_label.setStyleSheet(f"""
+            font-size: 28pt;
+            color: {ModernTheme.TEXT_MUTED};
+            font-weight: 300;
+            background-color: transparent;
         """)
-        arrow_label.setFixedWidth(30)
+        arrow_label.setFixedWidth(24)
         arrow_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(arrow_label)
         
@@ -99,30 +104,26 @@ class AppCard(QFrame):
         self.is_selected = selected
         
         if selected:
-            # Selected state - accent color
-            self.setStyleSheet("""
-                AppCard {
-                    background-color: #2A4B7C;
-                    border: 2px solid #4A9EFF;
-                    border-radius: 10px;
-                }
-                AppCard:hover {
-                    background-color: #2E5189;
-                    border: 2px solid #5AADFF;
-                }
+            # Selected state - subtle border and accent
+            self.setStyleSheet(f"""
+                AppCard {{
+                    background-color: transparent;
+                    border: 2px solid {ModernTheme.ACCENT};
+                    border-radius: 4px;
+                }}
             """)
         else:
-            # Default state
-            self.setStyleSheet("""
-                AppCard {
-                    background-color: #2D2D2D;
-                    border: 1px solid #404040;
-                    border-radius: 10px;
-                }
-                AppCard:hover {
-                    background-color: #353535;
-                    border: 1px solid #4A9EFF;
-                }
+            # Default state - subtle border on hover only
+            self.setStyleSheet(f"""
+                AppCard {{
+                    background-color: transparent;
+                    border: 1px solid transparent;
+                    border-radius: 4px;
+                }}
+                AppCard:hover {{
+                    border: 1px solid {ModernTheme.BORDER_LIGHT};
+                    background-color: {ModernTheme.BG_HOVER};
+                }}
             """)
     
     def mousePressEvent(self, event):
