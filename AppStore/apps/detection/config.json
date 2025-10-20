@@ -1,0 +1,8 @@
+{
+  "name": "Object Detection",
+  "version": "1.0.0",
+  "description": "Real-time object detection using OpenCV",
+  "enabled": true,
+  "author": "AppStore Team",
+  "dependencies": ["opencv-python", "numpy"]
+}

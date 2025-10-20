@@ -1,0 +1,8 @@
+{
+  "name": "Image Classification",
+  "version": "1.0.0",
+  "description": "Image classification with pre-trained models",
+  "enabled": true,
+  "author": "AppStore Team",
+  "dependencies": ["opencv-python", "numpy", "pillow"]
+}
