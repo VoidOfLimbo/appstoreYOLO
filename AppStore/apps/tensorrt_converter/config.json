@@ -1,9 +1,0 @@
-{
-  "name": "TensorRT Converter",
-  "version": "1.0.0",
-  "description": "Convert models to TensorRT format for hardware acceleration",
-  "enabled": true,
-  "author": "AppStore Team",
-  "icon": "⚡",
-  "dependencies": ["numpy"]
-}
