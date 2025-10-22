@@ -23,15 +23,28 @@ def create_windows_executable():
     base_dir = Path(__file__).parent.parent
     spec_file = base_dir / "build_tools" / "windows_onefile.spec"
     
+    # Find and copy TensorRT DLLs
+    print_step("Finding TensorRT DLLs")
+    dll_finder = base_dir / "build_tools" / "find_tensorrt_dlls.py"
+    subprocess.run([sys.executable, str(dll_finder)], cwd=base_dir)
+    
     # Create optimized spec file for single-file build
     spec_content = """# -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
 
+import os
+tensorrt_dll_dir = '../build_tools/tensorrt_dlls'
+tensorrt_binaries = []
+if os.path.exists(tensorrt_dll_dir):
+    for dll in os.listdir(tensorrt_dll_dir):
+        if dll.endswith('.dll'):
+            tensorrt_binaries.append((os.path.join(tensorrt_dll_dir, dll), '.'))
+
 a = Analysis(
     ['../main.py'],
     pathex=['../src'],
-    binaries=[],
+    binaries=tensorrt_binaries,
     datas=[
         ('../src', 'src'),
     ],
@@ -39,21 +52,45 @@ a = Analysis(
         'PyQt5.QtCore',
         'PyQt5.QtGui',
         'PyQt5.QtWidgets',
-        'torch',
+        'PyQt5.sip',
+        'torch._C',
+        'torch._VF',
+        'torch.nn',
+        'torch.cuda',
+        'torch.jit',
+        'torch.onnx',
         'torchvision',
         'tensorrt',
+        'tensorrt_bindings',
         'onnx',
+        'onnxruntime',
+        'onnxruntime.capi',
+        'onnxslim',
         'cv2',
         'PIL',
         'numpy',
         'psutil',
         'ultralytics',
+        'ultralytics.cfg',
+        'ultralytics.engine',
+        'ultralytics.models',
+        'ultralytics.nn',
         'cpuinfo',
     ],
     hookspath=['../hooks'],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=['../hooks/rthook_tensorrt.py'],
     excludes=[
+        # Exclude modules that cause warnings
+        'tensorboard',
+        'torch.utils.tensorboard',
+        'torch.distributed.elastic',
+        'torch.distributed._sharding_spec',
+        'torch.distributed._sharded_tensor',
+        'torch.testing',
+        'torch.profiler',
+        'torch.quantization',
+        # Exclude unused large modules
         'matplotlib',
         'scipy',
         'pandas',
@@ -65,6 +102,16 @@ a = Analysis(
         'tests',
         'onnx.reference',
         'onnx.reference.ops',
+        # Exclude PyQt5 modules we don't need
+        'PyQt5.QtBluetooth',
+        'PyQt5.QtDBus',
+        'PyQt5.QtDesigner',
+        'PyQt5.QtNetwork',
+        'PyQt5.QtWebEngine',
+        'PyQt5.QtWebEngineCore',
+        'PyQt5.QtWebEngineWidgets',
+        'PyQt5.QtWebSockets',
+        'PyQt5.QtXml',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
