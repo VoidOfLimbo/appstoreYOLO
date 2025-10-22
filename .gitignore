@@ -55,3 +55,7 @@ Thumbs.db
 # Output directory
 output/*.engine
 output/*.onnx
+
+# Build artifacts
+build_tools/tensorrt_dlls/
+build_tools/windows_onefile.spec

@@ -2,32 +2,73 @@
 
 block_cipher = None
 
+import os
+from pathlib import Path
+
+# Get the base directory (current working directory when PyInstaller runs)
+base_dir = Path(os.getcwd())
+
+# Prepare TensorRT DLLs
+tensorrt_dll_dir = base_dir / 'build_tools' / 'tensorrt_dlls'
+tensorrt_binaries = []
+if tensorrt_dll_dir.exists():
+    for dll in tensorrt_dll_dir.glob('*.dll'):
+        tensorrt_binaries.append((str(dll), '.'))
+
+# Prepare paths
+hooks_dir = str(base_dir / 'hooks')
+runtime_hook = str(base_dir / 'hooks' / 'rthook_tensorrt.py')
+
 a = Analysis(
-    ['../main.py'],
-    pathex=['../src'],
-    binaries=[],
+    [str(base_dir / 'main.py')],
+    pathex=[str(base_dir / 'src')],
+    binaries=tensorrt_binaries,
     datas=[
-        ('../src', 'src'),
+        (str(base_dir / 'src'), 'src'),
     ],
     hiddenimports=[
         'PyQt5.QtCore',
         'PyQt5.QtGui',
         'PyQt5.QtWidgets',
-        'torch',
+        'PyQt5.sip',
+        'torch._C',
+        'torch._VF',
+        'torch.nn',
+        'torch.cuda',
+        'torch.jit',
+        'torch.onnx',
         'torchvision',
         'tensorrt',
+        'tensorrt_bindings',
         'onnx',
+        'onnxruntime',
+        'onnxruntime.capi',
+        'onnxslim',
         'cv2',
         'PIL',
         'numpy',
         'psutil',
         'ultralytics',
+        'ultralytics.cfg',
+        'ultralytics.engine',
+        'ultralytics.models',
+        'ultralytics.nn',
         'cpuinfo',
     ],
-    hookspath=['../hooks'],
+    hookspath=[hooks_dir],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[runtime_hook],
     excludes=[
+        # Exclude modules that cause warnings
+        'tensorboard',
+        'torch.utils.tensorboard',
+        'torch.distributed.elastic',
+        'torch.distributed._sharding_spec',
+        'torch.distributed._sharded_tensor',
+        'torch.testing',
+        'torch.profiler',
+        'torch.quantization',
+        # Exclude unused large modules
         'matplotlib',
         'scipy',
         'pandas',
@@ -39,6 +80,16 @@ a = Analysis(
         'tests',
         'onnx.reference',
         'onnx.reference.ops',
+        # Exclude PyQt5 modules we don't need
+        'PyQt5.QtBluetooth',
+        'PyQt5.QtDBus',
+        'PyQt5.QtDesigner',
+        'PyQt5.QtNetwork',
+        'PyQt5.QtWebEngine',
+        'PyQt5.QtWebEngineCore',
+        'PyQt5.QtWebEngineWidgets',
+        'PyQt5.QtWebSockets',
+        'PyQt5.QtXml',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

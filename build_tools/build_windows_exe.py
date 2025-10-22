@@ -23,6 +23,34 @@ def create_windows_executable():
     base_dir = Path(__file__).parent.parent
     spec_file = base_dir / "build_tools" / "windows_onefile.spec"
     
+    # Clear PyInstaller cache and build directories
+    print_step("Clearing Build Cache")
+    
+    # Clear PyInstaller cache
+    venv_path = base_dir / ".venv"
+    pyinstaller_cache = venv_path / "Lib" / "site-packages" / "PyInstaller" / "cache"
+    
+    if pyinstaller_cache.exists():
+        print(f"Removing PyInstaller cache: {pyinstaller_cache}")
+        shutil.rmtree(pyinstaller_cache, ignore_errors=True)
+        print("✓ PyInstaller cache cleared")
+    
+    # Clear build directory
+    build_dir = base_dir / "build"
+    if build_dir.exists():
+        print(f"Removing build directory: {build_dir}")
+        shutil.rmtree(build_dir, ignore_errors=True)
+        print("✓ Build directory cleared")
+    
+    # Clear dist directory
+    dist_dir = base_dir / "dist" / "windows"
+    if dist_dir.exists():
+        print(f"Removing dist directory: {dist_dir}")
+        shutil.rmtree(dist_dir, ignore_errors=True)
+        print("✓ Dist directory cleared")
+    
+    print("All caches cleared successfully!")
+    
     # Find and copy TensorRT DLLs
     print_step("Finding TensorRT DLLs")
     dll_finder = base_dir / "build_tools" / "find_tensorrt_dlls.py"
@@ -34,19 +62,28 @@ def create_windows_executable():
 block_cipher = None
 
 import os
-tensorrt_dll_dir = '../build_tools/tensorrt_dlls'
+from pathlib import Path
+
+# Get the base directory (current working directory when PyInstaller runs)
+base_dir = Path(os.getcwd())
+
+# Prepare TensorRT DLLs
+tensorrt_dll_dir = base_dir / 'build_tools' / 'tensorrt_dlls'
 tensorrt_binaries = []
-if os.path.exists(tensorrt_dll_dir):
-    for dll in os.listdir(tensorrt_dll_dir):
-        if dll.endswith('.dll'):
-            tensorrt_binaries.append((os.path.join(tensorrt_dll_dir, dll), '.'))
+if tensorrt_dll_dir.exists():
+    for dll in tensorrt_dll_dir.glob('*.dll'):
+        tensorrt_binaries.append((str(dll), '.'))
+
+# Prepare paths
+hooks_dir = str(base_dir / 'hooks')
+runtime_hook = str(base_dir / 'hooks' / 'rthook_tensorrt.py')
 
 a = Analysis(
-    ['../main.py'],
-    pathex=['../src'],
+    [str(base_dir / 'main.py')],
+    pathex=[str(base_dir / 'src')],
     binaries=tensorrt_binaries,
     datas=[
-        ('../src', 'src'),
+        (str(base_dir / 'src'), 'src'),
     ],
     hiddenimports=[
         'PyQt5.QtCore',
@@ -77,9 +114,9 @@ a = Analysis(
         'ultralytics.nn',
         'cpuinfo',
     ],
-    hookspath=['../hooks'],
+    hookspath=[hooks_dir],
     hooksconfig={},
-    runtime_hooks=['../hooks/rthook_tensorrt.py'],
+    runtime_hooks=[runtime_hook],
     excludes=[
         # Exclude modules that cause warnings
         'tensorboard',
