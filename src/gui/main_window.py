@@ -35,39 +35,110 @@ class ConversionWorker(QThread):
         self,
         converter: TensorRTConverter,
         model_path: str,
-        engine_path: str,
+        output_path: str,
         precision: str,
-        workspace_size: int
+        workspace_size: int,
+        imgsz: int = 640,
+        batch: int = 1,
+        export_format: str = 'tensorrt',
+        device: int = 0
     ):
         super().__init__()
         self.converter = converter
         self.model_path = model_path
-        self.engine_path = engine_path
+        self.output_path = output_path
         self.precision = precision
         self.workspace_size = workspace_size
+        self.imgsz = imgsz
+        self.batch = batch
+        self.export_format = export_format
+        self.device = device
     
     def run(self):
         """Run the conversion in a separate thread."""
         try:
             model_ext = Path(self.model_path).suffix.lower()
             
-            if model_ext == '.onnx':
+            # Check if it's a YOLO model and use Ultralytics export
+            if model_ext in ['.pt', '.pth']:
+                try:
+                    from ultralytics import YOLO
+                    
+                    self.progress.emit(f"Loading YOLO model: {self.model_path}")
+                    model = YOLO(self.model_path)
+                    
+                    self.progress.emit(f"\nExporting to {self.export_format.upper()}...")
+                    self.progress.emit(f"Settings: imgsz={self.imgsz}, batch={self.batch}, device={self.device}")
+                    self.progress.emit("\nNote: First export may install dependencies (onnxslim, onnxruntime-gpu)")
+                    self.progress.emit("This is normal and only happens once. Please wait...\n")
+                    
+                    # Map format names
+                    format_map = {
+                        'tensorrt': 'engine',
+                        'onnx': 'onnx',
+                        'torchscript': 'torchscript',
+                        'openvino': 'openvino'
+                    }
+                    
+                    # Export with Ultralytics
+                    result = model.export(
+                        format=format_map.get(self.export_format, 'engine'),
+                        half=(self.precision == 'fp16'),
+                        imgsz=self.imgsz,
+                        batch=self.batch,
+                        device=self.device
+                    )
+                    
+                    self.progress.emit(f"\n✅ Export completed successfully!")
+                    
+                    # Find the actual output file
+                    model_dir = Path(self.model_path).parent
+                    model_stem = Path(self.model_path).stem
+                    
+                    # Ultralytics creates files with specific naming
+                    if self.export_format == 'tensorrt':
+                        actual_output = model_dir / f"{model_stem}.engine"
+                    elif self.export_format == 'onnx':
+                        actual_output = model_dir / f"{model_stem}.onnx"
+                    elif self.export_format == 'torchscript':
+                        actual_output = model_dir / f"{model_stem}.torchscript"
+                    else:  # openvino
+                        actual_output = model_dir / f"{model_stem}_openvino_model"
+                    
+                    success = True
+                    message = (
+                        f"Conversion completed successfully!\n\n"
+                        f"Output saved to:\n{actual_output}\n\n"
+                        f"Format: {self.export_format.upper()}\n"
+                        f"Precision: {self.precision.upper()}\n"
+                        f"Image Size: {self.imgsz}\n"
+                        f"Batch Size: {self.batch}"
+                    )
+                    self.finished.emit(True, message)
+                    return
+                    
+                except Exception as e:
+                    self.progress.emit(f"Ultralytics export failed: {str(e)}")
+                    self.progress.emit("Falling back to manual conversion...")
+                    
+                    # Fallback to manual conversion
+                    input_shape = (self.batch, 3, self.imgsz, self.imgsz)
+                    success = self.converter.convert_pytorch_to_engine(
+                        self.model_path,
+                        self.output_path,
+                        input_shape=input_shape,
+                        precision=self.precision,
+                        workspace_size=self.workspace_size,
+                        progress_callback=self.progress.emit
+                    )
+            
+            elif model_ext == '.onnx':
+                self.progress.emit("Converting ONNX model to TensorRT...")
                 success = self.converter.convert_onnx_to_engine(
                     self.model_path,
-                    self.engine_path,
+                    self.output_path,
                     self.precision,
                     self.workspace_size,
-                    progress_callback=self.progress.emit
-                )
-            elif model_ext in ['.pt', '.pth']:
-                # For PyTorch models, we need input shape
-                # Using a default shape, but this should be configurable
-                success = self.converter.convert_pytorch_to_engine(
-                    self.model_path,
-                    self.engine_path,
-                    input_shape=(1, 3, 640, 640),  # Default YOLO shape
-                    precision=self.precision,
-                    workspace_size=self.workspace_size,
                     progress_callback=self.progress.emit
                 )
             else:
@@ -77,7 +148,7 @@ class ConversionWorker(QThread):
                 return
             
             if success:
-                message = f"Conversion completed successfully!\nEngine saved to: {self.engine_path}"
+                message = f"Conversion completed successfully!\nOutput saved to: {self.output_path}"
             else:
                 message = "Conversion failed. Check the log for details."
             
@@ -211,7 +282,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(progress_group)
         
         # Convert button
-        self.convert_button = QPushButton("Convert to TensorRT Engine")
+        self.convert_button = QPushButton("Export Model")
         self.convert_button.setEnabled(False)
         self.convert_button.setStyleSheet("""
             QPushButton {
@@ -295,6 +366,56 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(precision_layout)
         
+        # Image size setting
+        imgsz_layout = QHBoxLayout()
+        imgsz_layout.addWidget(QLabel("Image Size:"))
+        
+        self.imgsz_combo = QComboBox()
+        self.imgsz_combo.addItems(["320", "416", "512", "640", "800", "1024", "1280"])
+        self.imgsz_combo.setCurrentText("640")
+        self.imgsz_combo.setToolTip("Input image size for the model (width/height)")
+        imgsz_layout.addWidget(self.imgsz_combo)
+        
+        layout.addLayout(imgsz_layout)
+        
+        # Batch size setting
+        batch_layout = QHBoxLayout()
+        batch_layout.addWidget(QLabel("Batch Size:"))
+        
+        self.batch_spin = QSpinBox()
+        self.batch_spin.setMinimum(1)
+        self.batch_spin.setMaximum(128)
+        self.batch_spin.setValue(1)
+        self.batch_spin.setToolTip("Number of images to process simultaneously\nRecommended: 1 for real-time, 8-32 for batch processing")
+        batch_layout.addWidget(self.batch_spin)
+        
+        layout.addLayout(batch_layout)
+        
+        # Export format setting
+        format_layout = QHBoxLayout()
+        format_layout.addWidget(QLabel("Export Format:"))
+        
+        self.format_combo = QComboBox()
+        self.format_combo.addItems(["TensorRT", "ONNX", "TorchScript", "OpenVINO"])
+        self.format_combo.setCurrentText("TensorRT")
+        self.format_combo.setToolTip("Target export format")
+        self.format_combo.currentTextChanged.connect(self.on_format_changed)
+        format_layout.addWidget(self.format_combo)
+        
+        layout.addLayout(format_layout)
+        
+        # Device selection
+        device_layout = QHBoxLayout()
+        device_layout.addWidget(QLabel("Device:"))
+        
+        self.device_combo = QComboBox()
+        self.device_combo.addItems(["0 (GPU)", "1 (GPU)", "2 (GPU)", "3 (GPU)", "cpu"])
+        self.device_combo.setCurrentText("0 (GPU)")
+        self.device_combo.setToolTip("Device to use for export (GPU index or CPU)")
+        device_layout.addWidget(self.device_combo)
+        
+        layout.addLayout(device_layout)
+        
         # Workspace size setting
         workspace_layout = QHBoxLayout()
         workspace_layout.addWidget(QLabel("Workspace Size (GB):"))
@@ -303,6 +424,7 @@ class MainWindow(QMainWindow):
         self.workspace_spin.setMinimum(1)
         self.workspace_spin.setMaximum(16)
         self.workspace_spin.setValue(DEFAULT_WORKSPACE_SIZE)
+        self.workspace_spin.setToolTip("Maximum GPU memory workspace for TensorRT")
         workspace_layout.addWidget(self.workspace_spin)
         
         layout.addLayout(workspace_layout)
@@ -399,6 +521,19 @@ class MainWindow(QMainWindow):
         if dir_path:
             self.output_path_edit.setText(dir_path)
     
+    def on_format_changed(self, format_text: str):
+        """Handle export format change."""
+        # Update button text based on format
+        format_lower = format_text.lower()
+        if format_lower == "tensorrt":
+            self.convert_button.setText("Export to TensorRT")
+        elif format_lower == "onnx":
+            self.convert_button.setText("Export to ONNX")
+        elif format_lower == "torchscript":
+            self.convert_button.setText("Export to TorchScript")
+        else:  # openvino
+            self.convert_button.setText("Export to OpenVINO")
+    
     def on_file_dropped(self, file_path: str):
         """Handle file drop event."""
         self.on_file_selected(file_path)
@@ -439,27 +574,54 @@ class MainWindow(QMainWindow):
         precision = self.precision_combo.currentText().lower()
         workspace_size = self.workspace_spin.value()
         output_dir = Path(self.output_path_edit.text())
+        imgsz = int(self.imgsz_combo.currentText())
+        batch = self.batch_spin.value()
+        export_format = self.format_combo.currentText().lower()
+        
+        # Parse device (extract number or 'cpu')
+        device_text = self.device_combo.currentText()
+        if 'cpu' in device_text.lower():
+            device = 'cpu'
+        else:
+            device = int(device_text.split()[0])
         
         # Create output directory if it doesn't exist
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Generate output engine path
+        # Generate output file path based on format
         model_name = Path(self.model_path).stem
-        engine_path = output_dir / f"{model_name}_{precision}.engine"
+        if export_format == "tensorrt":
+            output_path = output_dir / f"{model_name}_{precision}_b{batch}_img{imgsz}.engine"
+        elif export_format == "onnx":
+            output_path = output_dir / f"{model_name}_b{batch}_img{imgsz}.onnx"
+        elif export_format == "torchscript":
+            output_path = output_dir / f"{model_name}_b{batch}_img{imgsz}.torchscript"
+        else:  # openvino
+            output_path = output_dir / f"{model_name}_b{batch}_img{imgsz}_openvino_model"
         
         # Disable UI during conversion
         self.convert_button.setEnabled(False)
         self.statusBar().showMessage("Converting...")
         self.progress_text.clear()
-        self.progress_text.append("Starting conversion...\n")
+        self.progress_text.append(f"Starting conversion with settings:\n")
+        self.progress_text.append(f"  - Format: {export_format.upper()}\n")
+        self.progress_text.append(f"  - Precision: {precision.upper()}\n")
+        self.progress_text.append(f"  - Image Size: {imgsz}\n")
+        self.progress_text.append(f"  - Batch Size: {batch}\n")
+        self.progress_text.append(f"  - Device: {device}\n")
+        self.progress_text.append(f"  - Workspace: {workspace_size} GB\n\n")
         
         # Create and start worker thread
         self.worker = ConversionWorker(
             self.converter,
             self.model_path,
-            str(engine_path),
+            str(output_path),
             precision,
-            workspace_size
+            workspace_size,
+            imgsz,
+            batch,
+            export_format,
+            device
         )
         
         self.worker.progress.connect(self.on_conversion_progress)
