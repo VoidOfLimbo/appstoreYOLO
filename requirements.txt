@@ -1,0 +1,22 @@
+# Python requirements for TensorRT Model Converter
+
+# Core dependencies (PyTorch with CUDA support)
+# Install with: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+torch>=2.0.0
+torchvision>=0.15.0
+tensorrt>=8.6.0
+onnx>=1.14.0
+
+# GUI
+PyQt5>=5.15.0
+
+# Utilities
+numpy>=1.24.0
+Pillow>=9.5.0
+
+# Building executable
+pyinstaller>=6.0.0
+
+# Optional but recommended
+cuda-python>=12.0.0; platform_system == "Linux"
+cupy-cuda13x>=13.0.0; platform_system == "Windows"
