@@ -7,6 +7,11 @@ torchvision>=0.15.0
 tensorrt>=8.6.0
 onnx>=1.14.0
 
+# Ultralytics YOLO and export dependencies
+ultralytics>=8.0.0
+onnxslim>=0.1.71
+onnxruntime-gpu>=1.15.0
+
 # GUI
 PyQt5>=5.15.0
 

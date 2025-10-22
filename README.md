@@ -27,10 +27,17 @@ A GUI application for converting machine learning models to TensorRT engine form
    .venv\Scripts\activate
    ```
 
-3. Install dependencies:
+3. Install PyTorch with CUDA support:
+   ```powershell
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+   ```
+
+4. Install remaining dependencies:
    ```powershell
    pip install -r requirements.txt
    ```
+
+   **Note**: First time you export a model, Ultralytics may install additional dependencies (`onnxslim`, `onnxruntime-gpu`). These are now included in `requirements.txt` to prevent runtime installation.
 
 ## Usage
 
