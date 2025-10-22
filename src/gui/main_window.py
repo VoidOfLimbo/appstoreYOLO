@@ -535,7 +535,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFormat("%p% - %v/%m")
+        self.progress_bar.setFormat("%p%")
         layout.addWidget(self.progress_bar)
         
         group.setLayout(layout)
