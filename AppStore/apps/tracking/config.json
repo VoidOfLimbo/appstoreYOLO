@@ -1,9 +1,0 @@
-{
-  "name": "Object Tracking",
-  "version": "1.0.0",
-  "description": "Real-time object tracking with multiple algorithms",
-  "enabled": true,
-  "author": "AppStore Team",
-  "icon": "📍",
-  "dependencies": ["opencv-python", "numpy"]
-}
