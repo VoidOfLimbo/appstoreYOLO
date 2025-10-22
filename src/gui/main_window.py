@@ -2,13 +2,14 @@
 Main GUI application for TensorRT Model Converter.
 """
 import sys
+import shutil
 from pathlib import Path
 from typing import Optional
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QLineEdit, QComboBox, QTextEdit, QGroupBox,
-    QFileDialog, QSpinBox, QProgressBar, QMessageBox
+    QFileDialog, QSpinBox, QProgressBar, QMessageBox, QCheckBox
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QMimeData
 from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QFont
@@ -39,9 +40,10 @@ class ConversionWorker(QThread):
         precision: str,
         workspace_size: int,
         imgsz: int = 640,
-        batch: int = 1,
+        batch: int = 32,
         export_format: str = 'tensorrt',
-        device: int = 0
+        device: int = 0,
+        simplify: bool = False
     ):
         super().__init__()
         self.converter = converter
@@ -53,6 +55,7 @@ class ConversionWorker(QThread):
         self.batch = batch
         self.export_format = export_format
         self.device = device
+        self.simplify = simplify
     
     def run(self):
         """Run the conversion in a separate thread."""
@@ -68,9 +71,7 @@ class ConversionWorker(QThread):
                     model = YOLO(self.model_path)
                     
                     self.progress.emit(f"\nExporting to {self.export_format.upper()}...")
-                    self.progress.emit(f"Settings: imgsz={self.imgsz}, batch={self.batch}, device={self.device}")
-                    self.progress.emit("\nNote: First export may install dependencies (onnxslim, onnxruntime-gpu)")
-                    self.progress.emit("This is normal and only happens once. Please wait...\n")
+                    self.progress.emit(f"Settings: imgsz={self.imgsz}, batch={self.batch}, device={self.device}\n")
                     
                     # Map format names
                     format_map = {
@@ -86,24 +87,44 @@ class ConversionWorker(QThread):
                         half=(self.precision == 'fp16'),
                         imgsz=self.imgsz,
                         batch=self.batch,
-                        device=self.device
+                        device=self.device,
+                        simplify=self.simplify  # ONNX graph simplification (can crash on Windows)
                     )
                     
                     self.progress.emit(f"\n✅ Export completed successfully!")
                     
-                    # Find the actual output file
+                    # Find the file created by Ultralytics (in the model's directory)
                     model_dir = Path(self.model_path).parent
                     model_stem = Path(self.model_path).stem
                     
-                    # Ultralytics creates files with specific naming
+                    # Ultralytics creates files with specific naming in the model directory
                     if self.export_format == 'tensorrt':
-                        actual_output = model_dir / f"{model_stem}.engine"
+                        ultralytics_output = model_dir / f"{model_stem}.engine"
                     elif self.export_format == 'onnx':
-                        actual_output = model_dir / f"{model_stem}.onnx"
+                        ultralytics_output = model_dir / f"{model_stem}.onnx"
                     elif self.export_format == 'torchscript':
-                        actual_output = model_dir / f"{model_stem}.torchscript"
+                        ultralytics_output = model_dir / f"{model_stem}.torchscript"
                     else:  # openvino
-                        actual_output = model_dir / f"{model_stem}_openvino_model"
+                        ultralytics_output = model_dir / f"{model_stem}_openvino_model"
+                    
+                    # Move the file to the desired output directory
+                    final_output = Path(self.output_path)
+                    if ultralytics_output.exists():
+                        self.progress.emit(f"Moving output to: {final_output}")
+                        
+                        # For OpenVINO, it's a directory
+                        if self.export_format == 'openvino' and ultralytics_output.is_dir():
+                            if final_output.exists():
+                                shutil.rmtree(final_output)
+                            shutil.move(str(ultralytics_output), str(final_output))
+                        else:
+                            # For file outputs
+                            shutil.move(str(ultralytics_output), str(final_output))
+                        
+                        actual_output = final_output
+                    else:
+                        self.progress.emit(f"Warning: Could not find output at {ultralytics_output}")
+                        actual_output = ultralytics_output
                     
                     success = True
                     message = (
@@ -328,11 +349,6 @@ class MainWindow(QMainWindow):
         group = QGroupBox("Model Selection")
         layout = QVBoxLayout()
         
-        # Drop zone
-        self.drop_zone = DropZone()
-        self.drop_zone.file_dropped.connect(self.on_file_dropped)
-        layout.addWidget(self.drop_zone)
-        
         # Browse button and file path
         browse_layout = QHBoxLayout()
         
@@ -346,6 +362,11 @@ class MainWindow(QMainWindow):
         browse_layout.addWidget(browse_button)
         
         layout.addLayout(browse_layout)
+        
+        # Drop zone
+        self.drop_zone = DropZone()
+        self.drop_zone.file_dropped.connect(self.on_file_dropped)
+        layout.addWidget(self.drop_zone)
         group.setLayout(layout)
         
         return group
@@ -385,7 +406,7 @@ class MainWindow(QMainWindow):
         self.batch_spin = QSpinBox()
         self.batch_spin.setMinimum(1)
         self.batch_spin.setMaximum(128)
-        self.batch_spin.setValue(1)
+        self.batch_spin.setValue(32)
         self.batch_spin.setToolTip("Number of images to process simultaneously\nRecommended: 1 for real-time, 8-32 for batch processing")
         batch_layout.addWidget(self.batch_spin)
         
@@ -428,6 +449,16 @@ class MainWindow(QMainWindow):
         workspace_layout.addWidget(self.workspace_spin)
         
         layout.addLayout(workspace_layout)
+        
+        # Simplify ONNX checkbox
+        self.simplify_check = QCheckBox("Simplify ONNX (Advanced)")
+        self.simplify_check.setChecked(False)
+        self.simplify_check.setToolTip(
+            "Enable ONNX graph simplification using onnxslim.\n"
+            "Makes model smaller but may crash on Windows.\n"
+            "Leave unchecked unless you need it."
+        )
+        layout.addWidget(self.simplify_check)
         
         # Output path
         output_label = QLabel("Output Directory:")
@@ -577,6 +608,7 @@ class MainWindow(QMainWindow):
         imgsz = int(self.imgsz_combo.currentText())
         batch = self.batch_spin.value()
         export_format = self.format_combo.currentText().lower()
+        simplify = self.simplify_check.isChecked()
         
         # Parse device (extract number or 'cpu')
         device_text = self.device_combo.currentText()
@@ -609,7 +641,8 @@ class MainWindow(QMainWindow):
         self.progress_text.append(f"  - Image Size: {imgsz}\n")
         self.progress_text.append(f"  - Batch Size: {batch}\n")
         self.progress_text.append(f"  - Device: {device}\n")
-        self.progress_text.append(f"  - Workspace: {workspace_size} GB\n\n")
+        self.progress_text.append(f"  - Workspace: {workspace_size} GB\n")
+        self.progress_text.append(f"  - Simplify ONNX: {'Yes' if simplify else 'No'}\n\n")
         
         # Create and start worker thread
         self.worker = ConversionWorker(
@@ -621,7 +654,8 @@ class MainWindow(QMainWindow):
             imgsz,
             batch,
             export_format,
-            device
+            device,
+            simplify
         )
         
         self.worker.progress.connect(self.on_conversion_progress)
