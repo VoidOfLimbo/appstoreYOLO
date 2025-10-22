@@ -30,6 +30,7 @@ class ConversionWorker(QThread):
     """Worker thread for model conversion to avoid blocking the GUI."""
     
     progress = pyqtSignal(str)
+    progress_percent = pyqtSignal(int)  # Signal for progress bar percentage
     finished = pyqtSignal(bool, str)
     
     def __init__(
@@ -43,7 +44,8 @@ class ConversionWorker(QThread):
         batch: int = 32,
         export_format: str = 'tensorrt',
         device: int = 0,
-        simplify: bool = False
+        simplify: bool = False,
+        use_default_location: bool = False
     ):
         super().__init__()
         self.converter = converter
@@ -56,6 +58,7 @@ class ConversionWorker(QThread):
         self.export_format = export_format
         self.device = device
         self.simplify = simplify
+        self.use_default_location = use_default_location
     
     def run(self):
         """Run the conversion in a separate thread."""
@@ -67,9 +70,11 @@ class ConversionWorker(QThread):
                 try:
                     from ultralytics import YOLO
                     
+                    self.progress_percent.emit(10)
                     self.progress.emit(f"Loading YOLO model: {self.model_path}")
                     model = YOLO(self.model_path)
                     
+                    self.progress_percent.emit(20)
                     self.progress.emit(f"\nExporting to {self.export_format.upper()}...")
                     self.progress.emit(f"Settings: imgsz={self.imgsz}, batch={self.batch}, device={self.device}\n")
                     
@@ -81,6 +86,7 @@ class ConversionWorker(QThread):
                         'openvino': 'openvino'
                     }
                     
+                    self.progress_percent.emit(30)
                     # Export with Ultralytics
                     result = model.export(
                         format=format_map.get(self.export_format, 'engine'),
@@ -91,6 +97,7 @@ class ConversionWorker(QThread):
                         simplify=self.simplify  # ONNX graph simplification (can crash on Windows)
                     )
                     
+                    self.progress_percent.emit(90)
                     self.progress.emit(f"\n✅ Export completed successfully!")
                     
                     # Find the file created by Ultralytics (in the model's directory)
@@ -107,9 +114,17 @@ class ConversionWorker(QThread):
                     else:  # openvino
                         ultralytics_output = model_dir / f"{model_stem}_openvino_model"
                     
-                    # Move the file to the desired output directory
+                    # Move the file to the desired output directory (if not using default location)
                     final_output = Path(self.output_path)
-                    if ultralytics_output.exists():
+                    
+                    if self.use_default_location:
+                        # Keep the file in the default location (same as model)
+                        self.progress_percent.emit(95)
+                        self.progress.emit(f"File saved in default location: {ultralytics_output}")
+                        actual_output = ultralytics_output
+                    elif ultralytics_output.exists() and ultralytics_output != final_output:
+                        # Move to custom output directory
+                        self.progress_percent.emit(95)
                         self.progress.emit(f"Moving output to: {final_output}")
                         
                         # For OpenVINO, it's a directory
@@ -122,10 +137,14 @@ class ConversionWorker(QThread):
                             shutil.move(str(ultralytics_output), str(final_output))
                         
                         actual_output = final_output
+                    elif ultralytics_output.exists():
+                        # File is already in the right place
+                        actual_output = ultralytics_output
                     else:
                         self.progress.emit(f"Warning: Could not find output at {ultralytics_output}")
                         actual_output = ultralytics_output
                     
+                    self.progress_percent.emit(100)
                     success = True
                     message = (
                         f"Conversion completed successfully!\n\n"
@@ -450,6 +469,9 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(workspace_layout)
         
+        # Checkboxes side by side
+        checkboxes_layout = QHBoxLayout()
+        
         # Simplify ONNX checkbox
         self.simplify_check = QCheckBox("Simplify ONNX (Advanced)")
         self.simplify_check.setChecked(False)
@@ -458,7 +480,19 @@ class MainWindow(QMainWindow):
             "Makes model smaller but may crash on Windows.\n"
             "Leave unchecked unless you need it."
         )
-        layout.addWidget(self.simplify_check)
+        checkboxes_layout.addWidget(self.simplify_check)
+        
+        # Default export location checkbox
+        self.default_location_check = QCheckBox("Use Default Export Location")
+        self.default_location_check.setChecked(True)
+        self.default_location_check.setToolTip(
+            "Export file to the same directory as the source model.\n"
+            "When unchecked, exports to the directory specified below."
+        )
+        self.default_location_check.stateChanged.connect(self.on_default_location_changed)
+        checkboxes_layout.addWidget(self.default_location_check)
+        
+        layout.addLayout(checkboxes_layout)
         
         # Output path
         output_label = QLabel("Output Directory:")
@@ -468,11 +502,13 @@ class MainWindow(QMainWindow):
         
         self.output_path_edit = QLineEdit()
         self.output_path_edit.setText(str(OUTPUT_DIR))
+        self.output_path_edit.setEnabled(False)  # Disabled by default since "Use Default Location" is checked
         output_path_layout.addWidget(self.output_path_edit)
         
-        output_browse_button = QPushButton("Browse...")
-        output_browse_button.clicked.connect(self.browse_output_dir)
-        output_path_layout.addWidget(output_browse_button)
+        self.output_browse_button = QPushButton("Browse...")
+        self.output_browse_button.clicked.connect(self.browse_output_dir)
+        self.output_browse_button.setEnabled(False)  # Disabled by default since "Use Default Location" is checked
+        output_path_layout.addWidget(self.output_browse_button)
         
         layout.addLayout(output_path_layout)
         
@@ -493,6 +529,15 @@ class MainWindow(QMainWindow):
         self.progress_text.setMaximumHeight(120)
         
         layout.addWidget(self.progress_text)
+        
+        # Add progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setFormat("%p% - %v/%m")
+        layout.addWidget(self.progress_bar)
+        
         group.setLayout(layout)
         
         return group
@@ -565,6 +610,13 @@ class MainWindow(QMainWindow):
         else:  # openvino
             self.convert_button.setText("Export to OpenVINO")
     
+    def on_default_location_changed(self, state: int):
+        """Handle default location checkbox change."""
+        use_default = (state == 2)  # Qt.Checked = 2
+        # Disable output directory controls when using default location
+        self.output_path_edit.setEnabled(not use_default)
+        self.output_browse_button.setEnabled(not use_default)
+    
     def on_file_dropped(self, file_path: str):
         """Handle file drop event."""
         self.on_file_selected(file_path)
@@ -604,11 +656,11 @@ class MainWindow(QMainWindow):
         # Get settings
         precision = self.precision_combo.currentText().lower()
         workspace_size = self.workspace_spin.value()
-        output_dir = Path(self.output_path_edit.text())
         imgsz = int(self.imgsz_combo.currentText())
         batch = self.batch_spin.value()
         export_format = self.format_combo.currentText().lower()
         simplify = self.simplify_check.isChecked()
+        use_default_location = self.default_location_check.isChecked()
         
         # Parse device (extract number or 'cpu')
         device_text = self.device_combo.currentText()
@@ -617,8 +669,14 @@ class MainWindow(QMainWindow):
         else:
             device = int(device_text.split()[0])
         
-        # Create output directory if it doesn't exist
-        output_dir.mkdir(parents=True, exist_ok=True)
+        # Determine output directory
+        if use_default_location:
+            # Use the same directory as the model
+            output_dir = Path(self.model_path).parent
+        else:
+            # Use the specified output directory
+            output_dir = Path(self.output_path_edit.text())
+            output_dir.mkdir(parents=True, exist_ok=True)
         
         # Generate output file path based on format
         model_name = Path(self.model_path).stem
@@ -635,6 +693,7 @@ class MainWindow(QMainWindow):
         self.convert_button.setEnabled(False)
         self.statusBar().showMessage("Converting...")
         self.progress_text.clear()
+        self.progress_bar.setValue(0)
         self.progress_text.append(f"Starting conversion with settings:\n")
         self.progress_text.append(f"  - Format: {export_format.upper()}\n")
         self.progress_text.append(f"  - Precision: {precision.upper()}\n")
@@ -642,7 +701,8 @@ class MainWindow(QMainWindow):
         self.progress_text.append(f"  - Batch Size: {batch}\n")
         self.progress_text.append(f"  - Device: {device}\n")
         self.progress_text.append(f"  - Workspace: {workspace_size} GB\n")
-        self.progress_text.append(f"  - Simplify ONNX: {'Yes' if simplify else 'No'}\n\n")
+        self.progress_text.append(f"  - Simplify ONNX: {'Yes' if simplify else 'No'}\n")
+        self.progress_text.append(f"  - Output Location: {'Default (model directory)' if use_default_location else str(output_dir)}\n\n")
         
         # Create and start worker thread
         self.worker = ConversionWorker(
@@ -655,10 +715,12 @@ class MainWindow(QMainWindow):
             batch,
             export_format,
             device,
-            simplify
+            simplify,
+            use_default_location
         )
         
         self.worker.progress.connect(self.on_conversion_progress)
+        self.worker.progress_percent.connect(self.on_progress_percent_update)
         self.worker.finished.connect(self.on_conversion_finished)
         self.worker.start()
     
@@ -669,6 +731,10 @@ class MainWindow(QMainWindow):
         self.progress_text.verticalScrollBar().setValue(
             self.progress_text.verticalScrollBar().maximum()
         )
+    
+    def on_progress_percent_update(self, percent: int):
+        """Handle progress bar updates."""
+        self.progress_bar.setValue(percent)
     
     def on_conversion_finished(self, success: bool, message: str):
         """Handle conversion completion."""
