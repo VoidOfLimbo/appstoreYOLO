@@ -22,8 +22,9 @@ wheels/
 .installed.cfg
 *.egg
 
-# PyInstaller
+# PyInstaller artifacts (obsolete - using portable package now)
 *.manifest
+*.spec
 *.spec.orig
 
 # Logs
@@ -55,7 +56,12 @@ Thumbs.db
 # Output directory
 output/*.engine
 output/*.onnx
+output/*.pt
+output/*.pth
 
 # Build artifacts
 build_tools/tensorrt_dlls/
-build_tools/windows_onefile.spec
+build_tools/*.spec
+
+# Temporary cleanup script
+cleanup_now.py
