@@ -534,7 +534,15 @@ class InstallerWizard(QWizard):
         self.setWindowTitle("TensorRT Converter Setup")
         self.setWizardStyle(QWizard.ModernStyle)
         self.setOption(QWizard.HaveHelpButton, False)
+        self.setOption(QWizard.NoBackButtonOnStartPage, True)
+        self.setOption(QWizard.NoBackButtonOnLastPage, True)
+        self.setOption(QWizard.NoCancelButtonOnLastPage, True)
         self.setMinimumSize(700, 500)
+        self.setMaximumSize(900, 700)
+        
+        # Ensure pages stay in same window
+        self.setModal(True)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         
         # Add pages
         self.addPage(WelcomePage())
