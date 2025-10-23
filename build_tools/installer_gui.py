@@ -203,8 +203,8 @@ pause
 class WelcomePage(QWizardPage):
     """Welcome page."""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setTitle("Welcome to TensorRT Converter Setup")
         
         layout = QVBoxLayout()
@@ -234,8 +234,8 @@ class WelcomePage(QWizardPage):
 class SystemCheckPage(QWizardPage):
     """System requirements check page."""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setTitle("System Requirements Check")
         self.setSubTitle("Checking your system for required components...")
         
@@ -316,8 +316,8 @@ class SystemCheckPage(QWizardPage):
 class InstallOptionsPage(QWizardPage):
     """Installation options page."""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setTitle("Installation Options")
         self.setSubTitle("Choose where and how to install TensorRT Converter")
         
@@ -422,8 +422,8 @@ class InstallOptionsPage(QWizardPage):
 class InstallationPage(QWizardPage):
     """Installation progress page."""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setTitle("Installing")
         self.setSubTitle("Please wait while TensorRT Converter is being installed...")
         
@@ -490,8 +490,8 @@ class InstallationPage(QWizardPage):
 class FinishPage(QWizardPage):
     """Completion page."""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setTitle("Installation Complete")
         
         layout = QVBoxLayout()
@@ -528,8 +528,8 @@ class FinishPage(QWizardPage):
 class InstallerWizard(QWizard):
     """Main installer wizard."""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         
         self.setWindowTitle("TensorRT Converter Setup")
         self.setWizardStyle(QWizard.ModernStyle)
@@ -537,19 +537,27 @@ class InstallerWizard(QWizard):
         self.setOption(QWizard.NoBackButtonOnStartPage, True)
         self.setOption(QWizard.NoBackButtonOnLastPage, True)
         self.setOption(QWizard.NoCancelButtonOnLastPage, True)
+        self.setOption(QWizard.IndependentPages, False)
         self.setMinimumSize(700, 500)
         self.setMaximumSize(900, 700)
         
         # Ensure pages stay in same window
         self.setModal(True)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
+        
+        # Create and add pages with explicit parent
+        self.welcome_page = WelcomePage(self)
+        self.system_page = SystemCheckPage(self)
+        self.options_page = InstallOptionsPage(self)
+        self.install_page = InstallationPage(self)
+        self.finish_page = FinishPage(self)
         
         # Add pages
-        self.addPage(WelcomePage())
-        self.addPage(SystemCheckPage())
-        self.addPage(InstallOptionsPage())
-        self.addPage(InstallationPage())
-        self.addPage(FinishPage())
+        self.addPage(self.welcome_page)
+        self.addPage(self.system_page)
+        self.addPage(self.options_page)
+        self.addPage(self.install_page)
+        self.addPage(self.finish_page)
         
         # Set button text
         self.setButtonText(QWizard.NextButton, "Next >")
