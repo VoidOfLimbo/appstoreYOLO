@@ -15,6 +15,35 @@ if tensorrt_dll_dir.exists():
     for dll in tensorrt_dll_dir.glob('*.dll'):
         tensorrt_binaries.append((str(dll), '.'))
 
+# Prepare CUDA DLLs from torch (critical for CUDA detection)
+import site
+torch_lib_dir = None
+for site_dir in site.getsitepackages():
+    potential_torch_lib = Path(site_dir) / 'torch' / 'lib'
+    if potential_torch_lib.exists():
+        torch_lib_dir = potential_torch_lib
+        break
+
+if torch_lib_dir:
+    # Include essential CUDA DLLs
+    cuda_dlls = [
+        'cudart64_12.dll',
+        'cublas64_12.dll',
+        'cublasLt64_12.dll',
+        'cudnn64_9.dll',
+        'cufft64_11.dll',
+        'curand64_10.dll',
+        'cusolver64_11.dll',
+        'cusparse64_12.dll',
+        'nvrtc64_120_0.dll',
+        'nvToolsExt64_1.dll',
+    ]
+    
+    for dll_name in cuda_dlls:
+        dll_path = torch_lib_dir / dll_name
+        if dll_path.exists():
+            tensorrt_binaries.append((str(dll_path), '.'))
+
 # Prepare paths
 hooks_dir = str(base_dir / 'hooks')
 runtime_hook = str(base_dir / 'hooks' / 'rthook_tensorrt.py')

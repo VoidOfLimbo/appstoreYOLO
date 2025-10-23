@@ -1,7 +1,7 @@
 """
 PyInstaller hook for torch to exclude unnecessary modules and fix warnings.
 """
-from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files, collect_dynamic_libs
 
 # Collect necessary torch modules
 hiddenimports = [
@@ -11,6 +11,9 @@ hiddenimports = [
     'torch.optim',
     'torch.autograd',
     'torch.cuda',
+    'torch.cuda._utils',
+    'torch.backends.cuda',
+    'torch.backends.cudnn',
     'torch.jit',
     'torch.onnx',
     'torch.utils',
@@ -28,5 +31,6 @@ excludedimports = [
     'torch.distributed._sharded_tensor',  # Deprecated module
 ]
 
-# Collect data files
+# Collect data files and binaries (including CUDA DLLs)
 datas = collect_data_files('torch', include_py_files=False)
+binaries = collect_dynamic_libs('torch')
